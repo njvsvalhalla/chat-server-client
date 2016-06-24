@@ -1,8 +1,14 @@
 package com.cooksys.ftd.chat.server;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -14,7 +20,7 @@ public class Server implements Runnable {
 	Logger log = LoggerFactory.getLogger(Server.class);
 
 	int port;
-	Map<ClientHandler, Thread> handlerThreads;
+	public static Map<ClientHandler, Thread> handlerThreads;
 
 	public Server(int port) {
 		super();
