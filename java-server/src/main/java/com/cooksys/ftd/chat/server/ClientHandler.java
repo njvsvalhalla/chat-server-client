@@ -38,17 +38,25 @@ public class ClientHandler implements Runnable, Closeable {
 
 			log.info("handling client {}", this.client.getRemoteSocketAddress());
 
+			//Reads in the username given from the client, or gives a default username if not specified
 			String echoUsername = reader.readLine();
 			if (echoUsername.startsWith("username")) {
 				this.username = echoUsername.substring(9);
 				log.info("received username [{}] from client {}, echoing...", this.username,
 						this.client.getRemoteSocketAddress());
 			} else {
-				this.username = "Poopyface";
-				log.info("Client did not enter username, defaulted to {}", "Poopyface");
-				writer.print("You did not enter a username; your username is now 'Poopyface'.");
+				this.username = "temp";
+				int i = 1;
+				for (ClientHandler x : Server.handlerThreads.keySet()) {
+					if (x.username.startsWith("Poopyface")) {
+						i++;
+					}
+				}
+				this.username = "Poopyface" + i;
+				log.info("Client did not enter username, dafaulted to: {} {}.", this.username, this.client.getRemoteSocketAddress());
+				writer.print("You did not enter a username; your username is now " + this.username + "\n");
+				writer.flush();
 			}
-			writer.flush();
 
 			for (ClientHandler x : Server.handlerThreads.keySet()) {
 				this.date = new Date();
@@ -58,6 +66,12 @@ public class ClientHandler implements Runnable, Closeable {
 
 			while (!this.client.isClosed()) {
 				String echo = reader.readLine();
+				if (echo.contains("quit")) {
+					this.close();
+					this.client.close();
+					this.writer.close();
+					this.reader.close();
+				}
 				log.info("received message [{}] from client {} {}, echoing...", echo, this.username,
 						this.client.getRemoteSocketAddress());
 				for (ClientHandler x : Server.handlerThreads.keySet()) {
@@ -68,7 +82,7 @@ public class ClientHandler implements Runnable, Closeable {
 				}
 				writer.flush();
 			}
-			this.close();
+			//this.close();
 		} catch (IOException e) {
 			log.error("Handler fail! oh noes :(", e);
 		}
@@ -82,8 +96,9 @@ public class ClientHandler implements Runnable, Closeable {
 			this.date = new Date();
 			x.writer.print("DIS | " + this.dateFormat.format(this.date) + " | " + this.username);
 			x.writer.flush();
+			if (x.username == this.username)
+				Server.handlerThreads.remove(x);
 		}
-
 		this.client.close();
 	}
 
