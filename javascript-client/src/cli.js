@@ -44,12 +44,15 @@ cli
       }
     })
 
-    server.on('end', () => {
+    server.on('close', () => {
       this.log('disconnected from server :(')
+      cli.delimiter('connected:')
+      cli.ui.refresh()
     })
   })
   .action(function (command, callback) {
-    if (command === 'exit') {
+    if (command === '/quit') {
+      server.write('quit | ' + '\n')
       server.end()
       callback()
     } else {

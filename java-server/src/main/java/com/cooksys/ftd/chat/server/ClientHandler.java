@@ -13,7 +13,6 @@ import com.cooksys.ftd.chat.server.Server;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 public class ClientHandler implements Runnable, Closeable {
 
 	Logger log = LoggerFactory.getLogger(ClientHandler.class);
@@ -66,7 +65,14 @@ public class ClientHandler implements Runnable, Closeable {
 
 			while (!this.client.isClosed()) {
 				String echo = reader.readLine();
-				if (echo.contains("quit")) {
+				if (echo.startsWith("quit | ")) {
+					for (ClientHandler x : Server.handlerThreads.keySet()) {
+						this.date = new Date();
+						x.writer.print("DIS | " + this.dateFormat.format(this.date) + " | " + this.username);
+						x.writer.flush();
+						if (x.username == this.username)
+							Server.handlerThreads.remove(x);
+					}
 					this.close();
 					this.client.close();
 					this.writer.close();
@@ -91,14 +97,6 @@ public class ClientHandler implements Runnable, Closeable {
 	@Override
 	public void close() throws IOException {
 		log.info("closing connection to client {}", this.client.getRemoteSocketAddress());
-
-		for (ClientHandler x : Server.handlerThreads.keySet()) {
-			this.date = new Date();
-			x.writer.print("DIS | " + this.dateFormat.format(this.date) + " | " + this.username);
-			x.writer.flush();
-			if (x.username == this.username)
-				Server.handlerThreads.remove(x);
-		}
 		this.client.close();
 	}
 
