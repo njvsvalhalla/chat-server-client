@@ -25,16 +25,20 @@ import org.slf4j.LoggerFactory;
 import com.cooksys.ftd.chat.model.Message;
 
 public class ClientHandler implements Runnable, Closeable {
-
+	//Grab our logger for the class
 	Logger log = LoggerFactory.getLogger(ClientHandler.class);
 
+	//The following 3 are required for the server. We need to print and read our socket.
 	private Socket client;
 	private PrintWriter writer;
 	private BufferedReader reader;
+	
+	//Initiate username, date and set a standard for our date format
 	private String username;
 	private Date date;
 	private DateFormat dateFormat = new SimpleDateFormat("MM/dd HH:mm:ss");
 
+	
 	public ClientHandler(Socket client) throws IOException {
 		super();
 		this.client = client;
@@ -49,7 +53,7 @@ public class ClientHandler implements Runnable, Closeable {
 			log.info("handling client {}", this.client.getRemoteSocketAddress());
 
 			// Reads in the username given from the client, or gives a default
-			// username if not specified
+			// username if not specified. You can essentially just rename it to anything.
 			String echoUsername = reader.readLine();
 			if (echoUsername.startsWith("username")) {
 				this.username = echoUsername.substring(9);
@@ -59,25 +63,23 @@ public class ClientHandler implements Runnable, Closeable {
 				this.username = "temp";
 				int i = 1;
 				for (ClientHandler x : Server.handlerThreads.keySet()) {
-					if (x.username.startsWith("Poopyface")) {
+					if (x.username.startsWith("Anon")) {
 						i++;
 					}
 				}
-				this.username = "Poopyface" + i;
-				log.info("Client did not enter username, dafaulted to: {} {}.", this.username,
+				this.username = "Anon" + i;
+				log.info("Client did not enter username, defaulted to: {} {}.", this.username,
 						this.client.getRemoteSocketAddress());
-//				writer.print("You did not enter a username; your username is now " + this.username + "\n");
-//				writer.flush();
-				// writer.println("und | " + this.username + "\n");
-				// writer.flush();
 			}
-
+			
+			//Whenever someone connects, we need to send it out to all of our threads
 			for (ClientHandler x : Server.handlerThreads.keySet()) {
 				this.date = new Date();
 				x.writer.print("CON | " + this.dateFormat.format(this.date) + " | " + this.username);
 				x.writer.flush();
 			}
-
+			
+			//Similarly, whenever a client quits, we need to recognize that and close the thread. Plus announce it
 			while (!this.client.isClosed()) {
 				String echo = reader.readLine();
 				if (echo.startsWith("quit | ")) {
@@ -93,16 +95,8 @@ public class ClientHandler implements Runnable, Closeable {
 					this.writer.close();
 					this.reader.close();
 				}
-				// System.out.println(echo);
-				// JAXBContext jc = JAXBContext.newInstance(Message.class);
-				// Unmarshaller unmarshaller = jc.createUnmarshaller();
-				// unmarshaller.setProperty("eclipselink.media-type",
-				// "application/json");
-				// StringReader json = new
-				// StringReader(echo.replaceAll("[^\\x20-\\x7e\\x0A]", ""));
-				// Message msg = (Message) unmarshaller.unmarshal(json);
-				// msg.setDateM(new Date());
-
+				
+				//Whenever we get a new message, we have to unmarshall it and set a date to send out
 				Map<String, Object> properties = new HashMap<String, Object>(1);
 				properties.put("eclipselink.media-type", "application/json");
 				JAXBContext jc = JAXBContext.newInstance(new Class[] { Message.class }, properties);
@@ -115,6 +109,8 @@ public class ClientHandler implements Runnable, Closeable {
 				if (msg.getUn() == null) {
 					msg.setUn(this.username);
 				}
+				
+				//Just as we had to unmarshall.. not to put it right back into a json object
 				StringWriter sw = new StringWriter();
 				Marshaller marshaller = jc.createMarshaller();
 				marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
@@ -122,12 +118,10 @@ public class ClientHandler implements Runnable, Closeable {
 
 				log.info("received message [{}] from client {} {}, echoing...", msg.getMes(), msg.getUn(),
 						this.client.getRemoteSocketAddress());
+				//Now we just gotta send it out to all threads (clients) :)
 				for (ClientHandler x : Server.handlerThreads.keySet()) {
 					log.debug("Sending to user: {} {} ", x.username, x.client.getRemoteSocketAddress());
 					x.writer.print(sw);
-					// x.writer.print("MSG | " +
-					// dateFormat.format(msg.getDateM()) + " | " + msg.getUn() +
-					// " | " + msg.getMes());
 					x.writer.flush();
 				}
 				writer.flush();

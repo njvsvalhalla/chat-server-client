@@ -12,6 +12,10 @@ import javax.xml.bind.annotation.XmlType;
 @XmlType(propOrder = { "un", "mes", "dateM" })
 @XmlAccessorType(XmlAccessType.FIELD)
 public class Message {
+	/*
+	 * In our JSON, there are three parameters. We have un 'username', mes 'message', and date (date, obviously)
+	 * 
+	 */
 	@XmlElement(name = "un")
 	private String un;
 	@XmlElement(name = "mes")

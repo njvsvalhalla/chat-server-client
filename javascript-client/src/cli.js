@@ -22,6 +22,7 @@ cli
       callback()
     })
 
+    //Are we connecting with a username, or are we gonna be assigned an anonymous name?
     if (username) {
       server.on('connect', function () {
         server.write('username ' + username + '\n')
@@ -31,28 +32,34 @@ cli
     }
 
     server.on('data', (data) => {
+      //Commands will always be the first 4 letters, so we are going to parse that, and split anything else into an array
       let command = data.toString().substr(0, 5).toLowerCase()
       let arr = data.toString().split('|')
-      // if (command === 'msg |') {
-      //   this.log('[' + arr[1].substr(1, (arr[1].length - 2)) + ']' + ' <' + arr[2].substr(1, (arr[2].length - 2)) + '>' + arr[3])
-      // } else
+
       if (command === 'con |') {
+        //Yay! A new user!
         this.log('[' + arr[1].substr(1, (arr[1].length - 2)) + ']' + ' ' + arr[2].substr(1, (arr[2].length - 1)) + ' has joined the chat!')
       } else if (command === 'dis |') {
+        //Looks like someone disconnected.
         this.log('[' + arr[1].substr(1, (arr[1].length - 2)) + ']' + ' ' + arr[2].substr(1, (arr[2].length - 1)) + ' has left the chat!')
       }else {
+        //It's a message! We're gonna parse the date, username and message.
         let msgp = JSON.parse(data.toString())
         this.log('[' + msgp.msg.date + ']' + ' <' + msgp.msg.un + '>' + ' ' + msgp.msg.mes)
-      //  this.log(data.toString())
       }
     })
 
+    //When we disconnect from the server, it gets a little sad :(
     server.on('close', () => {
       this.log('disconnected from server :(')
       cli.delimiter('connected:')
       cli.ui.refresh()
     })
   })
+
+  /*
+    This functions as two things. One, our command quit, which disconnections as our server, otherwise, we are sending a typed message into the chat room.
+  */
   .action(function (command, callback) {
     if (command === '/quit') {
       server.write('quit | ' + '\n')
